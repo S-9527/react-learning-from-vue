@@ -2,20 +2,26 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
 /**
- * Zustand ≈ Pinia
+ * Zustand 的 create 回调本身就是一个闭包：
+ * 参数 set / get 被内部的函数捕获，最后 return 出要暴露的状态和方法。
  *
- * Pinia:  export const useCartStore = defineStore('cart', { state, getters, actions })
- * Zustand: export const useCartStore = create(...)
+ * 这里用「具名函数 + return { add }」的写法，等价于之前的行内箭头函数：
  *
- * 区别：
- * - Zustand 不需要在 main.tsx 里包 Provider，任何组件直接 import 就能用
- * - 没有 getters 字段，用 selector 函数派生（见文件末尾）
+ *   create((set, get) => {
+ *     function add() {...}     // 闭包里的函数
+ *     return { items: [], add }  // 暴露出去
+ *   })
+ *
+ * ⚠️ 关键点：闭包里的函数必须通过 set() 更新状态。
+ *    如果写成 let items = []; items.push(p) 这种普通闭包变量，
+ *    React 收不到通知，视图不会更新。
  */
 export type Product = { id: number; name: string; price: number }
 
+type CartItem = Product & { qty: number }
+
 type CartState = {
-  items: Array<Product & { qty: number }>
-  // actions：直接写在 store 里的方法 ≈ Pinia 的 actions
+  items: CartItem[]
   add: (product: Product) => void
   increase: (id: number) => void
   decrease: (id: number) => void
@@ -25,10 +31,10 @@ type CartState = {
 
 export const useCartStore = create<CartState>()(
   devtools(
-    (set) => ({
-      items: [],
+    (set) => {
+      // 下面的函数都在闭包里，能直接调用 set（需要读当前状态时可以用 get()）
 
-      add: (product) =>
+      function add(product: Product) {
         set((state) => {
           const found = state.items.find((item) => item.id === product.id)
           if (found) {
@@ -38,34 +44,42 @@ export const useCartStore = create<CartState>()(
               ),
             }
           }
-          // 状态不可变：永远返回新数组 / 新对象
           return { items: [...state.items, { ...product, qty: 1 }] }
-        }),
+        })
+      }
 
-      increase: (id) =>
+      function increase(id: number) {
         set((state) => ({
           items: state.items.map((item) =>
             item.id === id ? { ...item, qty: item.qty + 1 } : item,
           ),
-        })),
+        }))
+      }
 
-      decrease: (id) =>
+      function decrease(id: number) {
         set((state) => ({
           items: state.items
             .map((item) => (item.id === id ? { ...item, qty: item.qty - 1 } : item))
             .filter((item) => item.qty > 0),
-        })),
+        }))
+      }
 
-      remove: (id) =>
-        set((state) => ({ items: state.items.filter((item) => item.id !== id) })),
+      function remove(id: number) {
+        set((state) => ({ items: state.items.filter((item) => item.id !== id) }))
+      }
 
-      clear: () => set({ items: [] }),
-    }),
-    { name: 'cart-store' }, // 在 Redux DevTools 里能看到这个 store
+      function clear() {
+        set({ items: [] })
+      }
+
+      // 这就是「return { add }」形式：把状态和方法暴露出去
+      return { items: [], add, increase, decrease, remove, clear }
+    },
+    { name: 'cart-store' },
   ),
 )
 
-// getters ≈ Pinia 的 getters：写成纯函数，组件里用 selector 订阅
+// getters ≈ Pinia 的 getters：写成 selector 纯函数
 export const selectCount = (state: CartState) =>
   state.items.reduce((sum, item) => sum + item.qty, 0)
 

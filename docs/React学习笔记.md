@@ -639,3 +639,55 @@ const state = useCartStore() // ≈ Pinia 的 const store = useCartStore()
 
 > 项目里的 `/store` 页面已用「招数 1 + 2」重构，可直接对照阅读。
 
+### store 能写成 `function add() {} return { add }` 这种闭包吗？
+
+**可以，而且 Zustand 本来就是这么实现的。** `create` 的回调就是一个闭包，参数 `set` / `get` 被内部函数捕获，最后把状态和方法 return 出去：
+
+```ts
+export const useCartStore = create<CartState>()(
+  devtools((set) => {
+    // 闭包里的具名函数
+    function add(product: Product) {
+      set((state) => ({ items: [...state.items, product] }))
+    }
+    function remove(id: number) {
+      set((state) => ({ items: state.items.filter((i) => i.id !== id) }))
+    }
+
+    // 就是「return { add }」形式
+    return { items: [], add, remove }
+  }),
+)
+```
+
+项目里的 `src/stores/useCartStore.ts` 已改成这种具名函数写法，可读性比行内箭头函数更好。
+
+**⚠️ 关键区别**：闭包里的函数**必须通过 `set()` 更新状态**。如果写成普通闭包变量：
+
+```ts
+let items = []                 // ❌ React 不知道它变了
+function add(p) { items.push(p) }
+```
+
+React 收不到通知，视图不会更新。要让纯闭包具备响应式，必须自己实现「订阅 + 通知」，也就是 `useSyncExternalStore`：
+
+```ts
+let state = { items: [] }
+const listeners = new Set<() => void>()
+
+const cartStore = {
+  getSnapshot: () => state,
+  subscribe: (fn: () => void) => { listeners.add(fn); return () => listeners.delete(fn) },
+  add(p: Product) {
+    state = { items: [...state.items, p] }
+    listeners.forEach((fn) => fn()) // 通知 React 重渲染
+  },
+}
+
+function useCart() {
+  return useSyncExternalStore(cartStore.subscribe, cartStore.getSnapshot)
+}
+```
+
+这基本就是手写一个精简版 Zustand —— 所以直接用 Zustand 就好。
+
