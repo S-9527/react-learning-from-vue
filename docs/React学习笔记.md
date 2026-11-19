@@ -598,6 +598,43 @@ const add = useCartStore((s) => s.add)
 - `devtools` 中间件让你在 Redux DevTools 里看到状态变化，对应 Pinia 的 Vue Devtools 集成。
 - 第二个参数 `{ name: 'cart-store' }` 是 **devtools 专属配置**，只决定 DevTools 里显示的名字。不用 `devtools` 包裹时连它一起删掉即可；也可以加 `enabled: import.meta.env.DEV` 只在开发环境启用。
 
+### 什么时候用 `get()`
+
+`create((set, get) => {...})` 里的 `get()` 用来**读取当前状态快照**，不会触发更新。判断标准：
+
+> 更新状态用 `set((state) => ...)` 的参数；在 `set` 之外需要读状态时才用 `get()`。
+
+常见场景：
+
+1. **读状态但不修改**（发请求、导出、打印）：
+
+```ts
+async function checkout() {
+  const items = get().items
+  await fetch('/api/orders', { method: 'POST', body: JSON.stringify(items) })
+}
+```
+
+2. **异步回调里拿最新值**，避免闭包捕获旧值：
+
+```ts
+setTimeout(() => console.log(get().items), 3000)
+```
+
+3. **先判断再决定是否更新**：
+
+```ts
+function increase(id: number) {
+  const item = get().items.find((i) => i.id === id)
+  if (!item || item.qty >= 99) return
+  set((state) => ({ /* ... */ }))
+}
+```
+
+4. **组件外部读取**：`useCartStore.getState()` ≈ store 版本的 `get()`（项目里用它取 actions 就是因为这个）。
+
+⚠️ 能用 `set(state => ...)` 就别写成 `const s = get(); set({...})` —— 后者在连续更新时可能基于旧快照。所以实际项目里 `get()` 用得不多，大部分更新靠 `set` 的回调参数就够了。
+
 ### 关于「一堆 selector 看着恶心」——更干净的写法
 
 那 8 行订阅是标准写法，但 demo 为了一次展示所有功能才写全。实际项目可以用下面几招简化：
