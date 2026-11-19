@@ -597,3 +597,45 @@ const add = useCartStore((s) => s.add)
 - 更新状态依然遵守不可变原则：用 `set((s) => ({ items: [...s.items, x] }))`，不要原地 push。
 - `devtools` 中间件让你在 Redux DevTools 里看到状态变化，对应 Pinia 的 Vue Devtools 集成。
 
+### 关于「一堆 selector 看着恶心」——更干净的写法
+
+那 8 行订阅是标准写法，但 demo 为了一次展示所有功能才写全。实际项目可以用下面几招简化：
+
+**招数 1：actions 不需要订阅**（它们是稳定不变的函数）
+
+```ts
+// 模块顶层取一次就够了
+const { add, increase, decrease, remove, clear } = useCartStore.getState()
+```
+
+**招数 2：多个字段用 `useShallow` 一次订阅**
+
+```tsx
+import { useShallow } from 'zustand/react/shallow'
+
+const { items, count, total } = useCartStore(
+  useShallow((state) => ({
+    items: state.items,
+    count: selectCount(state),
+    total: selectTotal(state),
+  })),
+)
+```
+
+- `useShallow` 对返回对象做浅比较，只有字段真变了才重渲染。
+- ⚠️ 不要写成 `useCartStore((s) => ({ a: s.a, b: s.b }))` —— 每次返回新对象会**无限重渲染**（zustand v5 基于 `useSyncExternalStore`）。
+
+**招数 3：订阅整个 store（最像 Pinia，但性能差一点）**
+
+```tsx
+const state = useCartStore() // ≈ Pinia 的 const store = useCartStore()
+```
+
+任何字段变化都会重渲染整个组件。小 demo / 小组件用着省事，大页面不推荐。
+
+**招数 4：拆小组件（真实项目最推荐）**
+
+把页面拆成 `<ProductList>`、`<CartList>`、`<CartSummary>`，每个组件只订阅自己需要的 1～2 个字段，代码短且重渲染范围小。这正是 React「组件粒度」的思路。
+
+> 项目里的 `/store` 页面已用「招数 1 + 2」重构，可直接对照阅读。
+

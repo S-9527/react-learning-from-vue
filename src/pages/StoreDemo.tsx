@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import PageCard from '../components/PageCard.tsx'
 import {
   selectCount,
@@ -13,16 +14,34 @@ const products: Product[] = [
   { id: 3, name: 'TypeScript 实战', price: 59 },
 ]
 
+/**
+ * 写法说明：
+ *
+ * 1) actions（函数）永远不会变，不需要订阅！
+ *    用 getState() 在模块顶层取一次即可，省掉 5 行 useCartStore((s) => s.xxx)。
+ *
+ * 2) 状态值用 useShallow 一次订阅多个字段。
+ *    useShallow 会对返回的对象做「浅比较」：只有字段真的变了才重渲染。
+ *    ⚠️ 不要直接写 useCartStore((s) => ({ a: s.a, b: s.b }))，
+ *       每次渲染都返回新对象 → 无限重渲染（zustand v5）。
+ *
+ * 3) 最省事的写法是「订阅整个 store」：
+ *    const state = useCartStore()  ≈ Pinia 的 const store = useCartStore()
+ *    但任何字段变化都会让组件重渲染，大页面不推荐。
+ *
+ * 4) 真实项目更常见的做法是把页面拆成 <CartList> / <CartSummary> 等小组件，
+ *    每个组件只订阅自己需要的那一两个字段。
+ */
+const { add, increase, decrease, remove, clear } = useCartStore.getState()
+
 export default function StoreDemo() {
-  // 按需订阅：每个 selector 只取自己需要的片段 ≈ Pinia 的 storeToRefs
-  const items = useCartStore((state) => state.items)
-  const count = useCartStore(selectCount) // ≈ store.getters.double
-  const total = useCartStore(selectTotal)
-  const add = useCartStore((state) => state.add)
-  const increase = useCartStore((state) => state.increase)
-  const decrease = useCartStore((state) => state.decrease)
-  const remove = useCartStore((state) => state.remove)
-  const clear = useCartStore((state) => state.clear)
+  const { items, count, total } = useCartStore(
+    useShallow((state) => ({
+      items: state.items,
+      count: selectCount(state), // ≈ Pinia 的 getters
+      total: selectTotal(state),
+    })),
+  )
 
   // $subscribe 对照：监听整个 store 的变化
   const [logs, setLogs] = useState<string[]>([])
@@ -47,7 +66,7 @@ export default function StoreDemo() {
       <div className="code-note">
         {'Pinia: defineStore("cart", { state: () => ({ items: [] }), actions: { add() {} } })'}<br />
         Zustand: create&lt;State&gt;()((set) =&gt; {'({ items: [], add: () => set(...) })'})<br />
-        getters → 写成 selector 函数；storeToRefs → useStore(s =&gt; s.xxx)
+        getters → selector 函数；storeToRefs → useStore(s =&gt; s.xxx)
       </div>
 
       <h3>2. 商品列表（点按钮加入购物车）</h3>
