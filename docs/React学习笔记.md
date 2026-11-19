@@ -596,6 +596,7 @@ const add = useCartStore((s) => s.add)
 - selector 要返回**稳定引用或原始值**。不要写 `useStore(s => ({ a: s.a, b: s.b }))` —— 每次返回新对象会导致无限重新渲染（zustand v5 基于 `useSyncExternalStore`）。正确做法是拆成多个 selector。
 - 更新状态依然遵守不可变原则：用 `set((s) => ({ items: [...s.items, x] }))`，不要原地 push。
 - `devtools` 中间件让你在 Redux DevTools 里看到状态变化，对应 Pinia 的 Vue Devtools 集成。
+- 第二个参数 `{ name: 'cart-store' }` 是 **devtools 专属配置**，只决定 DevTools 里显示的名字。不用 `devtools` 包裹时连它一起删掉即可；也可以加 `enabled: import.meta.env.DEV` 只在开发环境启用。
 
 ### 关于「一堆 selector 看着恶心」——更干净的写法
 
