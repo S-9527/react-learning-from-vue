@@ -8,6 +8,7 @@ import RenderDemo from './pages/RenderDemo.tsx'
 import FormDemo from './pages/FormDemo.tsx'
 import ComponentDemo from './pages/ComponentDemo.tsx'
 import ContextDemo from './pages/ContextDemo.tsx'
+import StoreDemo from './pages/StoreDemo.tsx'
 import RouterIntro from './pages/RouterIntro.tsx'
 import RouterChild from './pages/RouterChild.tsx'
 import ProtectedPage from './pages/ProtectedPage.tsx'
@@ -25,6 +26,7 @@ const navItems = [
   { to: '/form', label: '表单事件' },
   { to: '/component', label: '组件通信' },
   { to: '/context', label: 'Context' },
+  { to: '/store', label: 'Zustand (Pinia)' },
   { to: '/router', label: '嵌套路由' },
   { to: '/user/1001', label: '动态路由' },
 ]
@@ -60,6 +62,7 @@ function App() {
           <Route path="/form" element={<FormDemo />} />
           <Route path="/component" element={<ComponentDemo />} />
           <Route path="/context" element={<ContextDemo />} />
+          <Route path="/store" element={<StoreDemo />} />
 
           {/* 嵌套路由：父路由用 Outlet 渲染子路由 */}
           <Route path="/router" element={<RouterIntro />}>

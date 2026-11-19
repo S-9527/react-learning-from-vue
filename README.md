@@ -35,8 +35,9 @@ pnpm build
 | 6 | `/form` | `src/pages/FormDemo.tsx` | 事件绑定、受控表单 | `@click` / `v-model` |
 | 7 | `/component` | `src/pages/ComponentDemo.tsx` | props、回调通信、children | props / emit / `<slot>` |
 | 8 | `/context` | `src/pages/ContextDemo.tsx` | `createContext` / `useContext` | `provide` / `inject` |
-| 9 | `/router` | `src/pages/RouterIntro.tsx` 等 | 嵌套路由、`Outlet`、路由守卫 | `children` / `<router-view>` / `beforeEach` |
-| 10 | `/user/:id` | `src/pages/User.tsx` | 动态路由参数、query | `route.params` / `route.query` |
+| 9 | `/store` | `src/pages/StoreDemo.tsx` | Zustand store、selector、subscribe | **Pinia** |
+| 10 | `/router` | `src/pages/RouterIntro.tsx` 等 | 嵌套路由、`Outlet`、路由守卫 | `children` / `<router-view>` / `beforeEach` |
+| 11 | `/user/:id` | `src/pages/User.tsx` | 动态路由参数、query | `route.params` / `route.query` |
 
 顶部导航可以直接点着切换。
 
@@ -56,6 +57,8 @@ src/
 │   └── AuthContext.tsx       # 登录状态（演示 Context ≈ provide/inject）
 ├── hooks/
 │   └── useClock.ts           # 自定义 Hook（≈ Vue 的 composable）
+├── stores/
+│   └── useCartStore.ts       # Zustand 全局 store（≈ Pinia store）
 └── pages/                    # 每个页面对应一个知识点
     ├── Home.tsx
     ├── StateDemo.tsx
@@ -65,6 +68,7 @@ src/
     ├── FormDemo.tsx
     ├── ComponentDemo.tsx
     ├── ContextDemo.tsx
+    ├── StoreDemo.tsx
     ├── RouterIntro.tsx
     ├── RouterChild.tsx
     ├── ProtectedPage.tsx

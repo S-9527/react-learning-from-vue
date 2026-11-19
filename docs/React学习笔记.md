@@ -542,3 +542,58 @@ src/
 
 已验证：`pnpm build` 通过；浏览器实测所有页面、导航激活态、动态参数、query、嵌套路由、登录守卫与 404 兜底均正常。
 
+---
+
+## 十三、全局状态管理：Pinia → Zustand
+
+React 没有官方的 Pinia，但生态里有几个对应方案：
+
+| Pinia 概念 | Zustand（推荐，最像 Pinia） | Redux Toolkit | Context + useReducer |
+| --- | --- | --- | --- |
+| `defineStore` | `create()` | `createSlice()` | 手写 Provider + reducer |
+| `store.count` | `useStore(s => s.count)` | `useSelector` | `useContext` |
+| `getters` | selector 函数 | `useSelector` 里算 | 手动算 |
+| `actions` | store 里的方法 | `dispatch(action)` | `dispatch` |
+| `$subscribe` | `store.subscribe()` | 中间件 | 无 |
+| DevTools | `devtools` 中间件 | 原生支持 | 无 |
+| 需要 Provider | ❌ 不需要 | 需要 | 需要 |
+
+其他可选：Jotai（原子化状态，≈ Recoil）、MobX（observable，语义最像 Vue 的 reactive）。服务端数据（请求/缓存）建议用 TanStack Query，和 Pinia 解决的不是同一类问题。
+
+### 项目里的实现（`src/stores/useCartStore.ts` + `src/pages/StoreDemo.tsx`）
+
+```ts
+// Pinia
+export const useCartStore = defineStore('cart', {
+  state: () => ({ items: [] }),
+  getters: { count: (s) => s.items.length },
+  actions: { add(product) { this.items.push(product) } },
+})
+
+// Zustand
+export const useCartStore = create<CartState>()(
+  devtools((set) => ({
+    items: [],
+    add: (product) => set((s) => ({ items: [...s.items, product] })),
+  }), { name: 'cart-store' }),
+)
+
+// getters → selector 纯函数
+export const selectCount = (s: CartState) => s.items.length
+```
+
+组件里按需订阅（≈ `storeToRefs`）：
+
+```tsx
+const items = useCartStore((s) => s.items)
+const count = useCartStore(selectCount)
+const add = useCartStore((s) => s.add)
+```
+
+### 注意点
+
+- Zustand **不需要** `<Provider>`，任何组件直接 import store 使用。
+- selector 要返回**稳定引用或原始值**。不要写 `useStore(s => ({ a: s.a, b: s.b }))` —— 每次返回新对象会导致无限重新渲染（zustand v5 基于 `useSyncExternalStore`）。正确做法是拆成多个 selector。
+- 更新状态依然遵守不可变原则：用 `set((s) => ({ items: [...s.items, x] }))`，不要原地 push。
+- `devtools` 中间件让你在 Redux DevTools 里看到状态变化，对应 Pinia 的 Vue Devtools 集成。
+

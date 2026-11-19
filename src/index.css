@@ -307,3 +307,24 @@ label {
   background: var(--accent-bg);
   border-color: var(--accent-border);
 }
+
+.cart-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cart-line .row {
+  margin: 0;
+}
+
+.cart-line button {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
